@@ -38,6 +38,10 @@ public class EnemyCombat : MonoBehaviour
     [Tooltip("Optional: particle / animation that plays as a telegraph before the hit.")]
     [SerializeField] private ParticleSystem attackTelegraphVFX;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip swingSFX;
+
     // State
     private bool isParryWindowOpen = false;
     private bool isAttacking = false;
@@ -47,6 +51,10 @@ public class EnemyCombat : MonoBehaviour
     {
         playerCombat = FindAnyObjectByType<PlayerCombat>();
         animator = GetComponent<Animator>();
+
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
         if (playerCombat == null)
         {
             Debug.LogError("[EnemyAttacker] No PlayerCombat assigned! Drag the Player GO into the Inspector.");
@@ -91,7 +99,9 @@ public class EnemyCombat : MonoBehaviour
 
         animator.SetBool("isDrawing", false);
         animator.SetBool("isAttacking", true);
+
         Vector3 contactPoint = hitPoint != null ? hitPoint.position : transform.position;
+        PlaySwingSFX();
         playerCombat.ReceiveAttack(isParryWindow: true, attackDamage, contactPoint);
 
         // 3. Keep window open briefly, then close it.
@@ -102,6 +112,12 @@ public class EnemyCombat : MonoBehaviour
         isParryWindowOpen = false;
         isAttacking = false;
         Debug.Log("[EnemyAttacker] Parry window CLOSED");
+    }
+
+    void PlaySwingSFX()
+    {
+        if (swingSFX != null && audioSource != null)
+            audioSource.PlayOneShot(swingSFX);
     }
 
     // Public query
