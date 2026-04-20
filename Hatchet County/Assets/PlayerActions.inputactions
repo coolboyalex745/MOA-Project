@@ -3,7 +3,7 @@
     "name": "PlayerActions",
     "maps": [
         {
-            "name": "Actions",
+            "name": "Action",
             "id": "02e69891-bdba-46d7-86eb-0065db058374",
             "actions": [
                 {
@@ -21,7 +21,7 @@
                     "id": "e5e3bc92-e127-464d-b78d-1bc8d9e0b842",
                     "expectedControlType": "",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "Press(behavior=2)",
                     "initialStateCheck": false
                 }
             ],

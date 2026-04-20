@@ -486,7 +486,7 @@ MonoBehaviour:
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: Keyboard and Mouse
-  m_DefaultActionMap: Actions
+  m_DefaultActionMap: Action
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
 --- !u!1001 &857532077922934070
@@ -540,6 +540,14 @@ PrefabInstance:
     - target: {fileID: 2903302985311883900, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7419584032221986394, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
+      propertyPath: parryWindow
+      value: 0.35
+      objectReference: {fileID: 0}
+    - target: {fileID: 7419584032221986394, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
+      propertyPath: telegraphDelay
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -712,7 +720,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2933949458841452155, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
-      insertIndex: -1
+      insertIndex: 3
       addedObject: {fileID: 1888421130}
   m_SourcePrefab: {fileID: 100100000, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
 --- !u!1660057539 &9223372036854775807

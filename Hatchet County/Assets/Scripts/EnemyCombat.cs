@@ -19,6 +19,7 @@ public class EnemyCombat : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerCombat playerCombat;
     [SerializeField] private Transform hitPoint;
+    [SerializeField] private Animator animator;
 
     [Header("Attack Timing")]
     [Tooltip("Seconds between each attack attempt.")]
@@ -28,7 +29,7 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] private float telegraphDelay = 0.6f;
 
     [Tooltip("How long after the hit starts the player can still parry.")]
-    [SerializeField] private float parryWindow = 0.35f;
+    [SerializeField] private float parryWindow = 1f;
 
     [Header("Damage")]
     [SerializeField] private int attackDamage = 20;
@@ -45,6 +46,7 @@ public class EnemyCombat : MonoBehaviour
     private void Start()
     {
         playerCombat = FindAnyObjectByType<PlayerCombat>();
+        animator = GetComponent<Animator>();
         if (playerCombat == null)
         {
             Debug.LogError("[EnemyAttacker] No PlayerCombat assigned! Drag the Player GO into the Inspector.");
@@ -70,6 +72,7 @@ public class EnemyCombat : MonoBehaviour
 
     private IEnumerator PerformAttack()
     {
+        animator.SetBool("isDrawing", true);
         isAttacking = true;
 
         // 1. Telegraph -- show a visual cue so the player knows the attack is coming.
@@ -79,10 +82,15 @@ public class EnemyCombat : MonoBehaviour
         Debug.Log("[EnemyAttacker] Winding up...");
         yield return new WaitForSeconds(telegraphDelay);
 
+ 
+
         // 2. Open parry window and land hit.
+      
         isParryWindowOpen = true;
         Debug.Log("[EnemyAttacker] ATTACK -- parry window OPEN");
 
+        animator.SetBool("isDrawing", false);
+        animator.SetBool("isAttacking", true);
         Vector3 contactPoint = hitPoint != null ? hitPoint.position : transform.position;
         playerCombat.ReceiveAttack(isParryWindow: true, attackDamage, contactPoint);
 
@@ -90,6 +98,7 @@ public class EnemyCombat : MonoBehaviour
         // The window stays open so a slightly late block still counts as a parry.
         yield return new WaitForSeconds(parryWindow);
 
+        animator.SetBool("isAttacking", false);
         isParryWindowOpen = false;
         isAttacking = false;
         Debug.Log("[EnemyAttacker] Parry window CLOSED");
