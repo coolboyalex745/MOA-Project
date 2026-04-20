@@ -62,7 +62,6 @@ public class PlayerCombat : MonoBehaviour
             vignetteImage.color = c;
         }
     }
-    // Called automatically by PlayerInput when action names match.
 
     public void OnBlock(InputValue value)
     {
