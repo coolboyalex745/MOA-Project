@@ -157,7 +157,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCombat
   playerCombat: {fileID: 0}
-  hitPoint: {fileID: 0}
+  hitPoint: {fileID: 2586825956995870855}
   animator: {fileID: 0}
   attackInterval: 2.5
   telegraphDelay: 0.6
@@ -285,6 +285,37 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &8046717116413979603
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2586825956995870855}
+  m_Layer: 0
+  m_Name: Hitpoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2586825956995870855
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8046717116413979603}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.4251619, z: -0, w: 0.9051174}
+  m_LocalPosition: {x: -0.039, y: 0.022, z: -0.487}
+  m_LocalScale: {x: 1.1291426, y: 2.973624, z: 1.3998951}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1404803223070030643}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8983555503950163496
 GameObject:
   m_ObjectHideFlags: 0
@@ -316,7 +347,8 @@ Transform:
   m_LocalPosition: {x: -0.655, y: 0.143, z: -0.526}
   m_LocalScale: {x: 0.33629, y: 0.33629, z: 1.2636769}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2586825956995870855}
   m_Father: {fileID: 2903302985311883900}
   m_LocalEulerAnglesHint: {x: 0, y: 50.322, z: 0}
 --- !u!33 &4492360749506018945

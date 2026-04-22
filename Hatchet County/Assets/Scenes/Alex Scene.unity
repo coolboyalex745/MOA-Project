@@ -568,6 +568,10 @@ PrefabInstance:
       propertyPath: telegraphDelay
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 7419584032221986394, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
+      propertyPath: attackTelegraphVFX
+      value: 
+      objectReference: {fileID: 5340257060884886015, guid: ffeb96df022902345bb40ebe18897965, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -712,7 +716,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8368587170158557063, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 162.46
+      value: 162.25
       objectReference: {fileID: 0}
     - target: {fileID: 8368587170158557063, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
       propertyPath: m_LocalRotation.w

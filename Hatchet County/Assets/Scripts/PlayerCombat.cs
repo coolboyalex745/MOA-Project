@@ -23,6 +23,8 @@ using System;
 /// </summary>
 public class PlayerCombat : MonoBehaviour
 {
+    public Animator animator;
+
     [Header("Health")]
     [SerializeField] private int maxHealth = 100;
     private int currentHealth;
@@ -50,6 +52,7 @@ public class PlayerCombat : MonoBehaviour
     // Unity lifecycle
     private void Awake()
     {
+        animator = GetComponent<Animator>();
         currentHealth = maxHealth;
 
         if (audioSource == null)
@@ -63,9 +66,20 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
+    private void Update()
+    {
+        if ( IsBlocking == false)
+        {
+        animator.SetBool("isBlocking", false);
+
+        }
+
+    }
+
     public void OnBlock(InputValue value)
     {
         IsBlocking = value.isPressed;
+        animator.SetBool("isBlocking", true);
     }
 
     // Public API called by EnemyAttacker
