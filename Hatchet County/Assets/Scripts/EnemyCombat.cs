@@ -4,15 +4,15 @@ using System.Collections;
 /// <summary>
 /// Hatchet County - EnemyCombat
 /// Damage only happens when the weapon collider physically touches the player.
+/// Notifies PlayerCombat when the parry window opens and closes.
 ///
-/// Setup:
-///   1. Add this script to your Enemy root GameObject.
-///   2. Create a child GameObject on the weapon (e.g. "WeaponHitbox").
-///      - Add a Collider to it (Box or Capsule), tick "Is Trigger".
-///      - Add the WeaponHitbox component (second script below) to that child.
-///      - Assign this EnemyCombat as the "owner" on WeaponHitbox in the Inspector.
-///   3. Tag your Player GameObject as "Player".
-///   4. The hitbox collider is disabled by default and only enabled during the attack window.
+/// Animation stages:
+///   Idle      -- sword hidden, no bools set
+///   isDrawing -- sword appears
+///   isCharging -- enemy draws back, parry window opens (1 second)
+///   isAttacking -- swing fires, hitbox active
+/// Each bool is set to true BEFORE the previous is set to false so the
+/// animator always has a true condition and never falls back to idle/hidden.
 /// </summary>
 public class EnemyCombat : MonoBehaviour
 {
@@ -25,13 +25,16 @@ public class EnemyCombat : MonoBehaviour
     [Tooltip("Seconds between each attack attempt.")]
     [SerializeField] private float attackInterval = 2.5f;
 
-    [Tooltip("Wind-up time before the hitbox becomes active.")]
+    [Tooltip("Wind-up time for the draw animation before the charge starts.")]
     [SerializeField] private float telegraphDelay = 0.6f;
 
-    [Tooltip("How long the hitbox stays active (the swing window).")]
+    [Tooltip("How long the parry window stays open during the charge (seconds before the hit).")]
+    [SerializeField] private float parryWindowDuration = 1f;
+
+    [Tooltip("How long the hitbox stays active during the swing.")]
     [SerializeField] private float attackActiveDuration = 0.4f;
 
-    [Tooltip("How long after the hitbox closes the parry window stays open (reward slightly late blocks).")]
+    [Tooltip("How long after the hitbox closes the parry window stays open.")]
     [SerializeField] private float parryGracePeriod = 0.15f;
 
     [Header("Damage")]
@@ -64,11 +67,10 @@ public class EnemyCombat : MonoBehaviour
 
         if (weaponHitbox == null)
         {
-            Debug.LogError("[EnemyCombat] No WeaponHitbox assigned. Create a child GO with a trigger collider and WeaponHitbox script.");
+            Debug.LogError("[EnemyCombat] No WeaponHitbox assigned.");
             return;
         }
 
-        // Make sure hitbox starts disabled
         weaponHitbox.SetActive(false);
         weaponHitbox.OnPlayerHit += HandleWeaponHit;
 
@@ -80,8 +82,6 @@ public class EnemyCombat : MonoBehaviour
         if (weaponHitbox != null)
             weaponHitbox.OnPlayerHit -= HandleWeaponHit;
     }
-
-    // Attack loop
 
     private IEnumerator AttackLoop()
     {
@@ -98,50 +98,58 @@ public class EnemyCombat : MonoBehaviour
     {
         isAttacking = true;
 
-        // 1. Telegraph wind-up
+        // Stage 1: Draw -- sword appears
         if (attackTelegraphVFX != null)
             attackTelegraphVFX.Play();
 
         animator.SetBool("isDrawing", true);
-        Debug.Log("[EnemyCombat] Winding up...");
+        Debug.Log("[EnemyCombat] Drawing...");
 
         yield return new WaitForSeconds(telegraphDelay);
 
-        // 2. Open parry window and enable the hitbox
+        // Stage 2: Charge -- set isCharging TRUE before isDrawing FALSE
+        // so the animator transitions draw -> charge without touching idle
         isParryWindowOpen = true;
-        animator.SetBool("isDrawing", false);
-        animator.SetBool("isAttacking", true);
+        playerCombat.SetParryWindow(true);
 
-        if (swingSFX != null && audioSource != null)
-            audioSource.PlayOneShot(swingSFX);
+        animator.SetBool("isCharging", true);
+        animator.SetBool("isDrawing", false);
+        Debug.Log("[EnemyCombat] Charging -- parry window OPEN");
+
+        yield return new WaitForSeconds(parryWindowDuration);
+
+        // Stage 3: Attack -- set isAttacking TRUE before isCharging FALSE
+        // so the animator transitions charge -> attack without touching idle
+        animator.SetBool("isAttacking", true);
+        animator.SetBool("isCharging", false);
 
         weaponHitbox.SetActive(true);
-        Debug.Log("[EnemyCombat] Hitbox ON -- parry window OPEN");
+        Debug.Log("[EnemyCombat] Attacking -- hitbox ON");
 
-        // 3. Hitbox stays active for the swing duration
         yield return new WaitForSeconds(attackActiveDuration);
 
         weaponHitbox.SetActive(false);
         Debug.Log("[EnemyCombat] Hitbox OFF");
 
-        // 4. Short grace period: parry window stays open a little after the swing
-        //    so a slightly late block on the last frame still rewards a parry.
         yield return new WaitForSeconds(parryGracePeriod);
 
         isParryWindowOpen = false;
-        isAttacking = false;
-        animator.SetBool("isAttacking", false);
-        Debug.Log("[EnemyCombat] Parry window CLOSED");
-    }
+        playerCombat.SetParryWindow(false);
 
-    // Called by WeaponHitbox when the trigger collider touches the player
+        // Return to idle -- set isAttacking FALSE last
+        animator.SetBool("isAttacking", false);
+        isAttacking = false;
+        Debug.Log("[EnemyCombat] Parry window CLOSED -- returning to idle");
+    }
 
     private void HandleWeaponHit(Vector3 contactPoint)
     {
+        if (swingSFX != null && audioSource != null)
+            audioSource.PlayOneShot(swingSFX);
+
         playerCombat.ReceiveAttack(isParryWindowOpen, attackDamage, contactPoint);
     }
 
-    // Public query
     public bool IsInParryWindow => isParryWindowOpen;
     public bool IsAttacking => isAttacking;
 

@@ -157,15 +157,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCombat
   playerCombat: {fileID: 0}
-  hitPoint: {fileID: 2586825956995870855}
+  weaponHitbox: {fileID: 6947188001328388987}
   animator: {fileID: 0}
   attackInterval: 2.5
   telegraphDelay: 0.6
-  parryWindow: 0.35
+  attackActiveDuration: 1
+  parryGracePeriod: 0.15
   attackDamage: 20
-  attackTelegraphVFX: {fileID: 0}
   audioSource: {fileID: 6896938497684295403}
   swingSFX: {fileID: 8300000, guid: c7610b85898768c4b82947ac04fc786d, type: 3}
+  attackTelegraphVFX: {fileID: 0}
 --- !u!95 &3853122573065939417
 Animator:
   serializedVersion: 7
@@ -285,37 +286,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!1 &8046717116413979603
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2586825956995870855}
-  m_Layer: 0
-  m_Name: Hitpoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2586825956995870855
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8046717116413979603}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.4251619, z: -0, w: 0.9051174}
-  m_LocalPosition: {x: -0.039, y: 0.022, z: -0.487}
-  m_LocalScale: {x: 1.1291426, y: 2.973624, z: 1.3998951}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1404803223070030643}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8983555503950163496
 GameObject:
   m_ObjectHideFlags: 0
@@ -328,6 +298,7 @@ GameObject:
   - component: {fileID: 4492360749506018945}
   - component: {fileID: 3514319934578154068}
   - component: {fileID: 2426993358288980379}
+  - component: {fileID: 6947188001328388987}
   m_Layer: 0
   m_Name: Sword
   m_TagString: Untagged
@@ -343,14 +314,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8983555503950163496}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0.4251619, z: -0, w: 0.9051174}
-  m_LocalPosition: {x: -0.655, y: 0.143, z: -0.526}
+  m_LocalRotation: {x: -0, y: 0.6964868, z: -0, w: 0.71756965}
+  m_LocalPosition: {x: -0.683, y: 0.143, z: -0.311}
   m_LocalScale: {x: 0.33629, y: 0.33629, z: 1.2636769}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2586825956995870855}
+  m_Children: []
   m_Father: {fileID: 2903302985311883900}
-  m_LocalEulerAnglesHint: {x: 0, y: 50.322, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 88.292, z: 0}
 --- !u!33 &4492360749506018945
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -429,3 +399,15 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6947188001328388987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8983555503950163496}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5777a31dbc452394d9ef8b5b547e3b03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponHitbox

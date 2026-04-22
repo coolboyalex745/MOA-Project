@@ -5,9 +5,8 @@ using System.Collections;
 
 /// <summary>
 /// Hatchet County - PlayerCombat
-/// Handles blocking, parry detection, taking damage, and feedback.
-/// On a successful parry, a child GameObject is spawned at the contact point
-/// and the clash VFX is played from it.
+/// Parry only succeeds if the player PRESSED block during the active parry window.
+/// Holding block before the window opens does not count as a parry.
 /// </summary>
 public class PlayerCombat : MonoBehaviour
 {
@@ -38,8 +37,13 @@ public class PlayerCombat : MonoBehaviour
     [Tooltip("How long before the spawned VFX child is destroyed. Match this to your particle duration.")]
     [SerializeField] private float parryVFXLifetime = 2f;
 
-    // State
+    // IsBlocking   : true while the block button is held
+    // parryPressed : true only if block was pressed DURING an active parry window
     public bool IsBlocking { get; private set; } = false;
+    private bool parryPressed = false;
+
+    // EnemyCombat calls this to open and close the parry window
+    private bool parryWindowOpen = false;
 
     // Unity lifecycle
     private void Awake()
@@ -64,25 +68,56 @@ public class PlayerCombat : MonoBehaviour
             animator.SetBool("isBlocking", false);
     }
 
+    // Input callback -- called by PlayerInput (Send Messages)
     public void OnBlock(InputValue value)
     {
         IsBlocking = value.isPressed;
-        animator.SetBool("isBlocking", true);
+        animator.SetBool("isBlocking", IsBlocking);
+
+        // Only register a parry press if the window is currently open
+        // and the player is pressing (not releasing) the button
+        if (IsBlocking && parryWindowOpen)
+        {
+            parryPressed = true;
+            Debug.Log("[PlayerCombat] Parry input registered inside window!");
+        }
     }
 
-    // Public API called by EnemyCombat
+    // Called by EnemyCombat to tell the player when the parry window opens and closes
+
+    public void SetParryWindow(bool open)
+    {
+        parryWindowOpen = open;
+
+        if (open)
+        {
+            // Reset every time a new window opens
+            parryPressed = false;
+            Debug.Log("[PlayerCombat] Parry window opened.");
+        }
+        else
+        {
+            Debug.Log("[PlayerCombat] Parry window closed.");
+        }
+    }
+
+    // Public API called by EnemyCombat when the hitbox connects
 
     public void ReceiveAttack(bool isParryWindow, int damage, Vector3 hitPoint)
     {
-        if (IsBlocking && isParryWindow)
+        // A parry requires BOTH: the window must be open AND block was pressed during it
+        bool validParry = isParryWindow && parryPressed;
+
+        if (validParry)
         {
             TriggerParrySuccess(hitPoint);
+            parryPressed = false;
         }
         else if (!IsBlocking)
         {
             TakeDamage(damage, hitPoint);
         }
-        // Blocking outside the parry window: blocked with no damage and no parry reward.
+        // Blocking but no valid parry: the attack is blocked with no damage, no parry reward.
     }
 
     // Private helpers
@@ -91,11 +126,9 @@ public class PlayerCombat : MonoBehaviour
     {
         Debug.Log("[PlayerCombat] PARRY!");
 
-        // Sound
         if (audioSource != null && parrySFX != null)
             audioSource.PlayOneShot(parrySFX);
 
-        // Spawn the clash VFX prefab as a child of the player at the contact point
         if (parryVFXPrefab != null)
         {
             GameObject vfxInstance = Instantiate(parryVFXPrefab, hitPoint, Quaternion.identity, transform);
@@ -104,7 +137,6 @@ public class PlayerCombat : MonoBehaviour
             if (ps != null)
                 ps.Play();
 
-            // Destroy the child after the effect finishes
             Destroy(vfxInstance, parryVFXLifetime);
         }
     }
@@ -127,7 +159,6 @@ public class PlayerCombat : MonoBehaviour
     private void OnDeath()
     {
         Debug.Log("[PlayerCombat] Player died.");
-        // Hook up your game-over logic here.
     }
 
     // Coroutines
@@ -176,6 +207,8 @@ public class PlayerCombat : MonoBehaviour
     {
         GUILayout.Label("HP: " + currentHealth + "/" + maxHealth);
         GUILayout.Label("Blocking: " + IsBlocking);
+        GUILayout.Label("Parry window: " + parryWindowOpen);
+        GUILayout.Label("Parry pressed: " + parryPressed);
     }
 #endif
 }
