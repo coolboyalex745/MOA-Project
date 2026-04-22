@@ -2,24 +2,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using System.Collections;
-using System;
 
 /// <summary>
 /// Hatchet County - PlayerCombat
 /// Handles blocking, parry detection, taking damage, and feedback.
-///
-/// Setup:
-///   1. Add this component to your Player GameObject.
-///   2. Assign a PlayerInput component (Send Messages mode).
-///   3. In your InputActionAsset, create:
-///        - Action "Block"  (Button, Hold)
-///        - Action "Attack" (Button, Press) -- optional for this prototype
-///   4. Hook up references in the Inspector:
-///        - cameraShakeTarget : your Main Camera transform
-///        - vignetteImage     : a fullscreen UI Image (Canvas > Screen Space Overlay, alpha = 0)
-///        - parrySFX          : metallic clang AudioClip
-///        - hitSFX            : thud / grunt AudioClip
-///        - parryVFX          : spark ParticleSystem prefab (or scene instance)
+/// On a successful parry, a child GameObject is spawned at the contact point
+/// and the clash VFX is played from it.
 /// </summary>
 public class PlayerCombat : MonoBehaviour
 {
@@ -43,8 +31,12 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private AudioClip parrySFX;
     [SerializeField] private AudioClip hitSFX;
 
-    [Header("VFX")]
-    [SerializeField] private ParticleSystem parryVFX;
+    [Header("Parry VFX")]
+    [Tooltip("Prefab with a ParticleSystem on it. Spawned as a child at the contact point on parry.")]
+    [SerializeField] private GameObject parryVFXPrefab;
+
+    [Tooltip("How long before the spawned VFX child is destroyed. Match this to your particle duration.")]
+    [SerializeField] private float parryVFXLifetime = 2f;
 
     // State
     public bool IsBlocking { get; private set; } = false;
@@ -68,12 +60,8 @@ public class PlayerCombat : MonoBehaviour
 
     private void Update()
     {
-        if ( IsBlocking == false)
-        {
-        animator.SetBool("isBlocking", false);
-
-        }
-
+        if (IsBlocking == false)
+            animator.SetBool("isBlocking", false);
     }
 
     public void OnBlock(InputValue value)
@@ -82,14 +70,8 @@ public class PlayerCombat : MonoBehaviour
         animator.SetBool("isBlocking", true);
     }
 
-    // Public API called by EnemyAttacker
+    // Public API called by EnemyCombat
 
-    /// <summary>
-    /// Called by the enemy when its attack lands.
-    /// isParryWindow : true if the attack is still inside the parry-timing window.
-    /// damage        : how much HP to subtract on a failed block.
-    /// hitPoint      : world position for VFX spawn.
-    /// </summary>
     public void ReceiveAttack(bool isParryWindow, int damage, Vector3 hitPoint)
     {
         if (IsBlocking && isParryWindow)
@@ -100,7 +82,7 @@ public class PlayerCombat : MonoBehaviour
         {
             TakeDamage(damage, hitPoint);
         }
-        // Blocking outside the parry window: attack is blocked, no damage and no parry reward.
+        // Blocking outside the parry window: blocked with no damage and no parry reward.
     }
 
     // Private helpers
@@ -109,13 +91,21 @@ public class PlayerCombat : MonoBehaviour
     {
         Debug.Log("[PlayerCombat] PARRY!");
 
+        // Sound
         if (audioSource != null && parrySFX != null)
             audioSource.PlayOneShot(parrySFX);
 
-        if (parryVFX != null)
+        // Spawn the clash VFX prefab as a child of the player at the contact point
+        if (parryVFXPrefab != null)
         {
-            parryVFX.transform.position = hitPoint;
-            parryVFX.Play();
+            GameObject vfxInstance = Instantiate(parryVFXPrefab, hitPoint, Quaternion.identity, transform);
+
+            ParticleSystem ps = vfxInstance.GetComponent<ParticleSystem>();
+            if (ps != null)
+                ps.Play();
+
+            // Destroy the child after the effect finishes
+            Destroy(vfxInstance, parryVFXLifetime);
         }
     }
 
