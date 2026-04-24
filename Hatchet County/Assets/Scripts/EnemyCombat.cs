@@ -53,6 +53,7 @@ public class EnemyCombat : MonoBehaviour
 
     private void Start()
     {
+        weaponHitbox = GetComponentInChildren<WeaponHitbox>();
         playerCombat = FindAnyObjectByType<PlayerCombat>();
         animator = GetComponent<Animator>();
 

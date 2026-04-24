@@ -383,17 +383,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2534321577616112675, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
   m_PrefabInstance: {fileID: 2392752978729876225}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1381806732 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6947188001328388987, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
-  m_PrefabInstance: {fileID: 857532077922934070}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5777a31dbc452394d9ef8b5b547e3b03, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WeaponHitbox
 --- !u!114 &1420198386 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7867239422486299717, guid: e21d66ecbfc0f2a468d17000b32adca4, type: 3}
@@ -631,7 +620,7 @@ PrefabInstance:
     - target: {fileID: 7419584032221986394, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
       propertyPath: weaponHitbox
       value: 
-      objectReference: {fileID: 1381806732}
+      objectReference: {fileID: 0}
     - target: {fileID: 7419584032221986394, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
       propertyPath: telegraphDelay
       value: 0.6
@@ -643,6 +632,10 @@ PrefabInstance:
     - target: {fileID: 7419584032221986394, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
       propertyPath: parryWindowDuration
       value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7419584032221986394, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
+      propertyPath: attackActiveDuration
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8983555503950163496, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
       propertyPath: m_IsActive

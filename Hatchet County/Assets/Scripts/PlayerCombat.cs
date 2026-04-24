@@ -113,11 +113,17 @@ public class PlayerCombat : MonoBehaviour
             TriggerParrySuccess(hitPoint);
             parryPressed = false;
         }
-        else if (!IsBlocking)
+        else if (IsBlocking)
         {
+            //Blocking but no parry --> half the damage
+            int reducedDamage = Mathf.CeilToInt(damage * 0.5f);
+            TakeDamage(reducedDamage, hitPoint);
+        }
+        else
+        {
+            // Not blocking --> full damage
             TakeDamage(damage, hitPoint);
         }
-        // Blocking but no valid parry: the attack is blocked with no damage, no parry reward.
     }
 
     // Private helpers
@@ -141,7 +147,7 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    private void TakeDamage(int damage, Vector3 hitPoint)
+    public void TakeDamage(int damage, Vector3 hitPoint)
     {
         currentHealth = Mathf.Max(0, currentHealth - damage);
         Debug.Log("[PlayerCombat] Hit! HP: " + currentHealth + "/" + maxHealth);
@@ -159,6 +165,7 @@ public class PlayerCombat : MonoBehaviour
     private void OnDeath()
     {
         Debug.Log("[PlayerCombat] Player died.");
+        Time.timeScale = 0f;
     }
 
     // Coroutines
