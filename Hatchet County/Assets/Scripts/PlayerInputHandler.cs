@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 public class PlayerInputHandler : MonoBehaviour
 {
     [Header("Input Action Asset")]
-    [SerializeField] private InputActionAsset playerControls;
+    [SerializeField] private InputActionAsset playerActions;
 
     [Header("Action Map Name References")]
     [SerializeField] private string actionMapName = "Action";
@@ -35,7 +35,7 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void Awake()
     {
-        InputActionMap mapReferance = playerControls.FindActionMap(actionMapName);
+        InputActionMap mapReferance = playerActions.FindActionMap(actionMapName);
         if (Instance == null)
         {
             Instance = this;
@@ -47,7 +47,7 @@ public class PlayerInputHandler : MonoBehaviour
             return;
         }
 
-        InputActionMap mapReference = playerControls.FindActionMap(actionMapName);
+        InputActionMap mapReference = playerActions.FindActionMap(actionMapName);
 
         moveAction = mapReferance.FindAction(move);
         lookAction = mapReferance.FindAction(look);
@@ -90,13 +90,13 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void OnEnable()
     {
-        playerControls.FindActionMap(actionMapName).Enable();
+        playerActions.FindActionMap(actionMapName).Enable();
         InputSystem.onDeviceChange += OnDeviceChange;
     }
 
     private void OnDisable()
     {
-        playerControls.FindActionMap(actionMapName).Disable();
+        playerActions.FindActionMap(actionMapName).Disable();
         InputSystem.onDeviceChange -= OnDeviceChange;
     }
 

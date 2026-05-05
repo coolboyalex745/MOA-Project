@@ -26,16 +26,8 @@ public class FirstPersonController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
         mainCamera = Camera.main;
-        animator = FindAnyObjectByType<Animator>();
-    }
-    private void Start()
-    {
         inputHandler = PlayerInputHandler.Instance;
-
-        if (inputHandler == null)
-        {
-            inputHandler = FindAnyObjectByType<PlayerInputHandler>();
-        }
+        animator = FindAnyObjectByType<Animator>();
     }
 
     void Update()
