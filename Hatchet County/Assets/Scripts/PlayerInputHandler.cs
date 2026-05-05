@@ -38,7 +38,6 @@ public class PlayerInputHandler : MonoBehaviour
         InputActionMap mapReferance = playerControls.FindActionMap(actionMapName);
         if (Instance == null)
         {
-
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
