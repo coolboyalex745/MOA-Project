@@ -4,21 +4,30 @@ using UnityEngine.InputSystem;
 public class PlayerInputHandler : MonoBehaviour
 {
     [Header("Input Action Asset")]
-    [SerializeField] private InputActionAsset playerControls;
+    [SerializeField] private InputActionAsset playerActions;
 
     [Header("Action Map Name References")]
     [SerializeField] private string actionMapName = "Action";
 
     [Header("Action Name References")]
+    [SerializeField] private string move = "Move";
+    [SerializeField] private string look = "Look";
+    [SerializeField] private string sprint = "Sprint";
     [SerializeField] private string fire = "Attack";
     [SerializeField] private string block = "Block";
 
     [Header("Deadzone Values")]
     [SerializeField] private float leftStickDeadzoneValue;
 
+    private InputAction moveAction;
+    private InputAction lookAction;
+    private InputAction sprintAction;
     private InputAction attackAction;
     private InputAction blockAction;
 
+    public Vector2 MoveInput { get; private set; }
+    public Vector2 LookInput { get; private set; }
+    public float SprintValue { get; private set; }
     public bool AttackTriggered { get; private set; }
     public bool IsBlocking { get; private set; }
 
@@ -26,6 +35,7 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void Awake()
     {
+        InputActionMap mapReferance = playerActions.FindActionMap(actionMapName);
         if (Instance == null)
         {
             Instance = this;
@@ -37,11 +47,13 @@ public class PlayerInputHandler : MonoBehaviour
             return;
         }
 
-        InputActionMap mapReference = playerControls.FindActionMap(actionMapName);
+        InputActionMap mapReference = playerActions.FindActionMap(actionMapName);
 
+        moveAction = mapReferance.FindAction(move);
+        lookAction = mapReferance.FindAction(look);
+        sprintAction = mapReferance.FindAction(sprint);
         attackAction = mapReference.FindAction(fire);
         blockAction = mapReference.FindAction(block);
-
         RegisterInputActions();
 
         InputSystem.settings.defaultDeadzoneMin = leftStickDeadzoneValue;
@@ -59,6 +71,15 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void RegisterInputActions()
     {
+        moveAction.performed += context => MoveInput = context.ReadValue<Vector2>();
+        moveAction.canceled += context => MoveInput = Vector2.zero;
+
+        lookAction.performed += context => LookInput = context.ReadValue<Vector2>();
+        lookAction.canceled += context => LookInput = Vector2.zero;
+
+        sprintAction.performed += context => SprintValue = context.ReadValue<float>();
+        sprintAction.canceled += context => SprintValue = 0f;
+
         attackAction.performed += context => AttackTriggered = true;
         attackAction.canceled += context => AttackTriggered = false;
 
@@ -69,13 +90,13 @@ public class PlayerInputHandler : MonoBehaviour
 
     private void OnEnable()
     {
-        playerControls.FindActionMap(actionMapName).Enable();
+        playerActions.FindActionMap(actionMapName).Enable();
         InputSystem.onDeviceChange += OnDeviceChange;
     }
 
     private void OnDisable()
     {
-        playerControls.FindActionMap(actionMapName).Disable();
+        playerActions.FindActionMap(actionMapName).Disable();
         InputSystem.onDeviceChange -= OnDeviceChange;
     }
 
