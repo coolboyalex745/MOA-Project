@@ -814,6 +814,18 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 3963559820893074422, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.315
+      objectReference: {fileID: 0}
+    - target: {fileID: 3963559820893074422, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.784
+      objectReference: {fileID: 0}
+    - target: {fileID: 3963559820893074422, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.983
+      objectReference: {fileID: 0}
     - target: {fileID: 4285581663426377308, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
       propertyPath: vignetteImage
       value: 
@@ -826,6 +838,10 @@ PrefabInstance:
       propertyPath: cameraShakeTarget
       value: 
       objectReference: {fileID: 1261207982}
+    - target: {fileID: 4344482723464210764, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5480832782602300722, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 

@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 5138363932035166854}
   - component: {fileID: 6965896047905359436}
   - component: {fileID: 7092064747336001589}
-  - component: {fileID: 9191585719732132460}
   m_Layer: 0
   m_Name: Axe
   m_TagString: Untagged
@@ -113,15 +112,3 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.7610661, y: 4.4262924, z: 0.23928581}
   m_Center: {x: 0.00006108799, y: 0.27664438, z: 0.000001878603}
---- !u!114 &9191585719732132460
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8911262451117189017}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5777a31dbc452394d9ef8b5b547e3b03, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WeaponHitbox
