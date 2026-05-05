@@ -37,8 +37,11 @@ public class EnemyCombat : MonoBehaviour
     [Tooltip("How long after the hitbox closes the parry window stays open.")]
     [SerializeField] private float parryGracePeriod = 0.15f;
 
-    [Header("Damage")]
+    [Header("Stats")]
+    [Tooltip("How much damage the enemy will deal to the player")]
     [SerializeField] private int attackDamage = 20;
+    [SerializeField] private int maxHealth = 100;
+    [SerializeField] private int currentHealth = 100;
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
