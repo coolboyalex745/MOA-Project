@@ -529,6 +529,24 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 2, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1888421144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1888421122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e650c0028570144590861a0c25f40f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FirstPersonController
+  walkSpeed: 3
+  sprintMultiplier: 2
+  invertedYAxis: 0
+  mouseSensitivity: 0.2
+  controllerSensitivity: 100
+  upDownRange: 80
 --- !u!1001 &857532077922934070
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -859,6 +877,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2933949458841452155, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
       insertIndex: 3
       addedObject: {fileID: 1888421130}
+    - targetCorrespondingSourceObject: {fileID: 2933949458841452155, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
+      insertIndex: 5
+      addedObject: {fileID: 1888421144}
     - targetCorrespondingSourceObject: {fileID: 2933949458841452155, guid: 5e23977418c837246b184dfbd6e7cff5, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1888421137}
