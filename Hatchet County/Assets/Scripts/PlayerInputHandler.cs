@@ -7,13 +7,14 @@ using UnityEngine.InputSystem;
 /// for other systems to read each frame. Lives across scene loads.
 ///
 /// Inputs exposed:
-///   MoveInput       -- WASD / left stick (Vector2)
-///   LookInput       -- mouse delta / right stick (Vector2)
-///   SprintValue     -- hold to sprint (float, 0 or 1)
-///   AttackTriggered -- true while attack button held
-///   IsBlocking      -- true while block button held
-///   JumpTriggered   -- true while jump button held; FirstPersonController
-///                      gates this to grounded frames only
+///   MoveInput        -- WASD / left stick (Vector2)
+///   LookInput        -- mouse delta / right stick (Vector2)
+///   SprintValue      -- hold to sprint (float, 0 or 1)
+///   AttackTriggered  -- true for exactly one frame on button press; auto-clears
+///                       in LateUpdate so every system reads it before it resets
+///   IsBlocking       -- true while block button held
+///   JumpTriggered    -- true while jump button held; FirstPersonController
+///                       gates this to grounded frames only
 /// </summary>
 public class PlayerInputHandler : MonoBehaviour
 {
@@ -44,9 +45,13 @@ public class PlayerInputHandler : MonoBehaviour
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
     public float SprintValue { get; private set; }
-    public bool AttackTriggered { get; private set; }
     public bool IsBlocking { get; private set; }
     public bool JumpTriggered { get; private set; }
+
+    // True for exactly one frame when the attack button is first pressed.
+    // Set by the InputAction callback, cleared in LateUpdate.
+    private bool attackTriggeredThisFrame = false;
+    public bool AttackTriggered => attackTriggeredThisFrame;
 
     public static PlayerInputHandler Instance { get; private set; }
 
@@ -88,14 +93,18 @@ public class PlayerInputHandler : MonoBehaviour
         sprintAction.performed += ctx => SprintValue = ctx.ReadValue<float>();
         sprintAction.canceled += ctx => SprintValue = 0f;
 
-        attackAction.performed += ctx => AttackTriggered = true;
-        attackAction.canceled += ctx => AttackTriggered = false;
+        attackAction.performed += ctx => attackTriggeredThisFrame = true;
 
         blockAction.performed += ctx => IsBlocking = true;
         blockAction.canceled += ctx => IsBlocking = false;
 
         jumpAction.performed += ctx => JumpTriggered = true;
         jumpAction.canceled += ctx => JumpTriggered = false;
+    }
+
+    private void LateUpdate()
+    {
+        attackTriggeredThisFrame = false;
     }
 
     private void OnEnable()
