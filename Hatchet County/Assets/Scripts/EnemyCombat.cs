@@ -5,8 +5,9 @@ using System.Collections;
 /// Hatchet County - EnemyCombat
 /// Damage only happens when the weapon collider physically touches the player.
 /// Notifies PlayerCombat when the parry window opens and closes.
-/// Requires a Boid component; attacks are only attempted while the Boid is
-/// in the Hunting or Retreating state and the player is within strikeRange.
+/// Requires a Boid component for movement and an EnemyFSM component for state.
+/// EnemyFSM calls TryAttack() when it enters the Attacking state; this class
+/// does not start attacks on its own.
 ///
 /// Animation stages:
 ///   Idle        -- sword hidden, no bools set
@@ -55,6 +56,8 @@ public class EnemyCombat : MonoBehaviour
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
     public float StrikeRange => strikeRange;
+    public float AttackCooldown => attackCooldown;
+    public float LastAttackTime => lastAttackTime;
     public bool IsInParryWindow => isParryWindowOpen;
     public bool IsAttacking => isAttacking;
 
@@ -95,25 +98,12 @@ public class EnemyCombat : MonoBehaviour
             weaponHitbox.OnPlayerHit -= HandleWeaponHit;
     }
 
-    private void Update()
+    public void TryAttack()
     {
-        if (playerCombat == null || isAttacking) return;
+        if (isAttacking) return;
 
-        bool isEngaged = boid != null &&
-                         (boid.State == Boid.BoidState.Hunting ||
-                          boid.State == Boid.BoidState.Retreating);
-
-        if (!isEngaged) return;
-
-        float distToPlayer = Vector3.Distance(transform.position, playerCombat.transform.position);
-        bool inRange = distToPlayer <= strikeRange;
-        bool cooldownOk = Time.time >= lastAttackTime + attackCooldown;
-
-        if (inRange && cooldownOk)
-        {
-            lastAttackTime = Time.time;
-            StartCoroutine(PerformAttack());
-        }
+        lastAttackTime = Time.time;
+        StartCoroutine(PerformAttack());
     }
 
     private IEnumerator PerformAttack()
@@ -160,8 +150,13 @@ public class EnemyCombat : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-        currentHealth = Mathf.Max(0, currentHealth - amount);
-        Debug.Log($"[EnemyCombat] Took {amount} damage -- {currentHealth}/{maxHealth} HP");
+        EnemyFSM fsm = GetComponent<EnemyFSM>();
+        int finalAmount = fsm != null
+            ? Mathf.CeilToInt(amount * fsm.BlockDamageMultiplier)
+            : amount;
+
+        currentHealth = Mathf.Max(0, currentHealth - finalAmount);
+        Debug.Log($"[EnemyCombat] Took {finalAmount} damage -- {currentHealth}/{maxHealth} HP");
 
         if (currentHealth <= 0)
             Die();
