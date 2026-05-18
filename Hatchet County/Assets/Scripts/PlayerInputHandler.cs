@@ -1,6 +1,20 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// Hatchet County - PlayerInputHandler
+/// Singleton that owns all InputAction bindings and exposes clean properties
+/// for other systems to read each frame. Lives across scene loads.
+///
+/// Inputs exposed:
+///   MoveInput       -- WASD / left stick (Vector2)
+///   LookInput       -- mouse delta / right stick (Vector2)
+///   SprintValue     -- hold to sprint (float, 0 or 1)
+///   AttackTriggered -- true while attack button held
+///   IsBlocking      -- true while block button held
+///   JumpTriggered   -- true while jump button held; FirstPersonController
+///                      gates this to grounded frames only
+/// </summary>
 public class PlayerInputHandler : MonoBehaviour
 {
     [Header("Input Action Asset")]
@@ -15,6 +29,7 @@ public class PlayerInputHandler : MonoBehaviour
     [SerializeField] private string sprint = "Sprint";
     [SerializeField] private string fire = "Attack";
     [SerializeField] private string block = "Block";
+    [SerializeField] private string jump = "Jump";
 
     [Header("Deadzone Values")]
     [SerializeField] private float leftStickDeadzoneValue;
@@ -24,18 +39,19 @@ public class PlayerInputHandler : MonoBehaviour
     private InputAction sprintAction;
     private InputAction attackAction;
     private InputAction blockAction;
+    private InputAction jumpAction;
 
     public Vector2 MoveInput { get; private set; }
     public Vector2 LookInput { get; private set; }
     public float SprintValue { get; private set; }
     public bool AttackTriggered { get; private set; }
     public bool IsBlocking { get; private set; }
+    public bool JumpTriggered { get; private set; }
 
     public static PlayerInputHandler Instance { get; private set; }
 
     private void Awake()
     {
-        InputActionMap mapReferance = playerActions.FindActionMap(actionMapName);
         if (Instance == null)
         {
             Instance = this;
@@ -48,44 +64,38 @@ public class PlayerInputHandler : MonoBehaviour
         }
 
         InputActionMap mapReference = playerActions.FindActionMap(actionMapName);
-
-        moveAction = mapReferance.FindAction(move);
-        lookAction = mapReferance.FindAction(look);
-        sprintAction = mapReferance.FindAction(sprint);
+        moveAction = mapReference.FindAction(move);
+        lookAction = mapReference.FindAction(look);
+        sprintAction = mapReference.FindAction(sprint);
         attackAction = mapReference.FindAction(fire);
         blockAction = mapReference.FindAction(block);
+        jumpAction = mapReference.FindAction(jump);
+
         RegisterInputActions();
 
         InputSystem.settings.defaultDeadzoneMin = leftStickDeadzoneValue;
         PrintDevices();
     }
 
-    void PrintDevices()
-    {
-        foreach (var device in InputSystem.devices)
-        {
-            if (device.enabled)
-                Debug.Log("Active Devices: " + device.name);
-        }
-    }
-
     private void RegisterInputActions()
     {
-        moveAction.performed += context => MoveInput = context.ReadValue<Vector2>();
-        moveAction.canceled += context => MoveInput = Vector2.zero;
+        moveAction.performed += ctx => MoveInput = ctx.ReadValue<Vector2>();
+        moveAction.canceled += ctx => MoveInput = Vector2.zero;
 
-        lookAction.performed += context => LookInput = context.ReadValue<Vector2>();
-        lookAction.canceled += context => LookInput = Vector2.zero;
+        lookAction.performed += ctx => LookInput = ctx.ReadValue<Vector2>();
+        lookAction.canceled += ctx => LookInput = Vector2.zero;
 
-        sprintAction.performed += context => SprintValue = context.ReadValue<float>();
-        sprintAction.canceled += context => SprintValue = 0f;
+        sprintAction.performed += ctx => SprintValue = ctx.ReadValue<float>();
+        sprintAction.canceled += ctx => SprintValue = 0f;
 
-        attackAction.performed += context => AttackTriggered = true;
-        attackAction.canceled += context => AttackTriggered = false;
+        attackAction.performed += ctx => AttackTriggered = true;
+        attackAction.canceled += ctx => AttackTriggered = false;
 
-        // Block: true while held, false on release
-        blockAction.performed += context => IsBlocking = true;
-        blockAction.canceled += context => IsBlocking = false;
+        blockAction.performed += ctx => IsBlocking = true;
+        blockAction.canceled += ctx => IsBlocking = false;
+
+        jumpAction.performed += ctx => JumpTriggered = true;
+        jumpAction.canceled += ctx => JumpTriggered = false;
     }
 
     private void OnEnable()
@@ -110,6 +120,15 @@ public class PlayerInputHandler : MonoBehaviour
             case InputDeviceChange.Reconnected:
                 Debug.Log("Device Reconnected: " + device.name);
                 break;
+        }
+    }
+
+    private void PrintDevices()
+    {
+        foreach (var device in InputSystem.devices)
+        {
+            if (device.enabled)
+                Debug.Log("Active Devices: " + device.name);
         }
     }
 }
