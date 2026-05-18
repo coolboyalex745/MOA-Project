@@ -5,15 +5,19 @@ using System.Collections;
 /// Hatchet County - EnemyCombat
 /// Damage only happens when the weapon collider physically touches the player.
 /// Notifies PlayerCombat when the parry window opens and closes.
+/// Requires a Boid component for movement and an EnemyFSM component for state.
+/// EnemyFSM calls TryAttack() when it enters the Attacking state; this class
+/// does not start attacks on its own.
 ///
 /// Animation stages:
-///   Idle      -- sword hidden, no bools set
-///   isDrawing -- sword appears
-///   isCharging -- enemy draws back, parry window opens (1 second)
+///   Idle        -- sword hidden, no bools set
+///   isDrawing   -- sword appears
+///   isCharging  -- enemy draws back, parry window opens (parryWindowDuration)
 ///   isAttacking -- swing fires, hitbox active
 /// Each bool is set to true BEFORE the previous is set to false so the
-/// animator always has a true condition and never falls back to idle/hidden.
+/// animator always has a true condition and never falls back to idle.
 /// </summary>
+[RequireComponent(typeof(Boid))]
 public class EnemyCombat : MonoBehaviour
 {
     [Header("References")]
@@ -21,24 +25,23 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] private WeaponHitbox weaponHitbox;
     [SerializeField] private Animator animator;
 
-    [Header("Attack Timing")]
-    [Tooltip("Seconds between each attack attempt.")]
-    [SerializeField] private float attackInterval = 2.5f;
+    [Header("Strike Range")]
+    [Tooltip("Distance to the player that triggers the attack sequence.")]
+    [SerializeField] private float strikeRange = 2f;
+    [Tooltip("Minimum seconds between two attacks.")]
+    [SerializeField] private float attackCooldown = 2.5f;
 
+    [Header("Attack Timing")]
     [Tooltip("Wind-up time for the draw animation before the charge starts.")]
     [SerializeField] private float telegraphDelay = 0.6f;
-
-    [Tooltip("How long the parry window stays open during the charge (seconds before the hit).")]
+    [Tooltip("How long the parry window stays open during the charge.")]
     [SerializeField] private float parryWindowDuration = 1f;
-
     [Tooltip("How long the hitbox stays active during the swing.")]
     [SerializeField] private float attackActiveDuration = 0.4f;
-
     [Tooltip("How long after the hitbox closes the parry window stays open.")]
     [SerializeField] private float parryGracePeriod = 0.15f;
 
     [Header("Stats")]
-    [Tooltip("How much damage the enemy will deal to the player")]
     [SerializeField] private int attackDamage = 20;
     [SerializeField] private int maxHealth = 100;
     [SerializeField] private int currentHealth = 100;
@@ -50,12 +53,22 @@ public class EnemyCombat : MonoBehaviour
     [Header("VFX")]
     [SerializeField] private ParticleSystem attackTelegraphVFX;
 
-    // State
+    public int CurrentHealth => currentHealth;
+    public int MaxHealth => maxHealth;
+    public float StrikeRange => strikeRange;
+    public float AttackCooldown => attackCooldown;
+    public float LastAttackTime => lastAttackTime;
+    public bool IsInParryWindow => isParryWindowOpen;
+    public bool IsAttacking => isAttacking;
+
     private bool isParryWindowOpen = false;
     private bool isAttacking = false;
+    private float lastAttackTime = float.NegativeInfinity;
+    private Boid boid;
 
     private void Start()
     {
+        boid = GetComponent<Boid>();
         weaponHitbox = GetComponentInChildren<WeaponHitbox>();
         playerCombat = FindAnyObjectByType<PlayerCombat>();
         animator = GetComponent<Animator>();
@@ -71,14 +84,12 @@ public class EnemyCombat : MonoBehaviour
 
         if (weaponHitbox == null)
         {
-            Debug.LogError("[EnemyCombat] No WeaponHitbox assigned.");
+            Debug.LogError("[EnemyCombat] No WeaponHitbox found in children.");
             return;
         }
 
         weaponHitbox.SetActive(false);
         weaponHitbox.OnPlayerHit += HandleWeaponHit;
-
-        StartCoroutine(AttackLoop());
     }
 
     private void OnDestroy()
@@ -87,22 +98,18 @@ public class EnemyCombat : MonoBehaviour
             weaponHitbox.OnPlayerHit -= HandleWeaponHit;
     }
 
-    private IEnumerator AttackLoop()
+    public void TryAttack()
     {
-        yield return new WaitForSeconds(1.5f);
+        if (isAttacking) return;
 
-        while (true)
-        {
-            yield return StartCoroutine(PerformAttack());
-            yield return new WaitForSeconds(attackInterval);
-        }
+        lastAttackTime = Time.time;
+        StartCoroutine(PerformAttack());
     }
 
     private IEnumerator PerformAttack()
     {
         isAttacking = true;
 
-        // Stage 1: Draw -- sword appears
         if (attackTelegraphVFX != null)
             attackTelegraphVFX.Play();
 
@@ -111,8 +118,6 @@ public class EnemyCombat : MonoBehaviour
 
         yield return new WaitForSeconds(telegraphDelay);
 
-        // Stage 2: Charge -- set isCharging TRUE before isDrawing FALSE
-        // so the animator transitions draw -> charge without touching idle
         isParryWindowOpen = true;
         playerCombat.SetParryWindow(true);
 
@@ -122,8 +127,6 @@ public class EnemyCombat : MonoBehaviour
 
         yield return new WaitForSeconds(parryWindowDuration);
 
-        // Stage 3: Attack -- set isAttacking TRUE before isCharging FALSE
-        // so the animator transitions charge -> attack without touching idle
         animator.SetBool("isAttacking", true);
         animator.SetBool("isCharging", false);
 
@@ -140,10 +143,29 @@ public class EnemyCombat : MonoBehaviour
         isParryWindowOpen = false;
         playerCombat.SetParryWindow(false);
 
-        // Return to idle -- set isAttacking FALSE last
         animator.SetBool("isAttacking", false);
         isAttacking = false;
         Debug.Log("[EnemyCombat] Parry window CLOSED -- returning to idle");
+    }
+
+    public void TakeDamage(int amount)
+    {
+        EnemyFSM fsm = GetComponent<EnemyFSM>();
+        int finalAmount = fsm != null
+            ? Mathf.CeilToInt(amount * fsm.BlockDamageMultiplier)
+            : amount;
+
+        currentHealth = Mathf.Max(0, currentHealth - finalAmount);
+        Debug.Log($"[EnemyCombat] Took {finalAmount} damage -- {currentHealth}/{maxHealth} HP");
+
+        if (currentHealth <= 0)
+            Die();
+    }
+
+    private void Die()
+    {
+        Debug.Log("[EnemyCombat] Enemy died.");
+        Destroy(gameObject);
     }
 
     private void HandleWeaponHit(Vector3 contactPoint)
@@ -154,12 +176,12 @@ public class EnemyCombat : MonoBehaviour
         playerCombat.ReceiveAttack(isParryWindowOpen, attackDamage, contactPoint);
     }
 
-    public bool IsInParryWindow => isParryWindowOpen;
-    public bool IsAttacking => isAttacking;
-
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, strikeRange);
+
         Gizmos.color = isParryWindowOpen ? Color.green : Color.red;
         Gizmos.DrawWireSphere(transform.position, 0.2f);
     }
