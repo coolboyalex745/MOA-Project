@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using System;
 using System.Collections;
 
 /// <summary>
@@ -45,7 +46,29 @@ public class PlayerCombat : MonoBehaviour
     // EnemyCombat calls this to open and close the parry window
     private bool parryWindowOpen = false;
 
+    /// <summary>
+    /// Raised the instant the player commits to an attack (start of PerformAttack),
+    /// not on every raw input poll. EnemyFSM subscribes to this to decide whether
+    /// to react (e.g. block) instead of reading PlayerInputHandler directly.
+    /// </summary>
+    public event Action OnAttackStarted;
+
     // Unity lifecycle
+
+    [Header("Attack")]
+    [SerializeField] private float chargeDuration = 0.4f;
+    [SerializeField] private float attackDuration = 0.3f;
+    [Tooltip("Damage dealt to an enemy when the weapon hitbox connects.")]
+    [SerializeField] private int attackDamage = 20;
+    [Tooltip("How long into the swing the hitbox becomes active (should be <= attackDuration).")]
+    [SerializeField] private float hitboxActiveDelay = 0.05f;
+    [Tooltip("How long the hitbox stays active once it turns on.")]
+    [SerializeField] private float hitboxActiveDuration = 0.2f;
+    [SerializeField] private PlayerWeaponHitbox weaponHitbox;
+
+    public bool IsAttacking { get; private set; }
+
+    private bool attackInProgress = false;
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -53,6 +76,17 @@ public class PlayerCombat : MonoBehaviour
 
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
+
+        if (weaponHitbox == null)
+            weaponHitbox = GetComponentInChildren<PlayerWeaponHitbox>();
+
+        if (weaponHitbox == null)
+            Debug.LogError("[PlayerCombat] No PlayerWeaponHitbox found in children.");
+        else
+        {
+            weaponHitbox.SetActive(false);
+            weaponHitbox.OnEnemyHit += HandleWeaponHit;
+        }
 
         if (vignetteImage != null)
         {
@@ -62,10 +96,78 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        if (weaponHitbox != null)
+            weaponHitbox.OnEnemyHit -= HandleWeaponHit;
+    }
+
     private void Update()
     {
-        if (IsBlocking == false)
+        if (!IsBlocking)
             animator.SetBool("isBlocking", false);
+
+        if (PlayerInputHandler.Instance != null &&
+            PlayerInputHandler.Instance.AttackTriggered)
+        {
+            TryAttack();
+        }
+    }
+
+    private void TryAttack()
+    {
+        if (attackInProgress)
+            return;
+
+        StartCoroutine(PerformAttack());
+    }
+
+    private IEnumerator PerformAttack()
+    {
+        attackInProgress = true;
+        IsAttacking = true;
+
+        // Notify listeners (e.g. EnemyFSM) that an attack has genuinely started.
+        // This fires once per attack, only when the attack actually begins --
+        // not on every frame the attack button happens to be held/triggered.
+        OnAttackStarted?.Invoke();
+
+        // Windup
+        animator.SetBool("isCharging", true);
+
+        yield return new WaitForSeconds(chargeDuration);
+
+        // Swing
+        animator.SetBool("isAttacking", true);
+        animator.SetBool("isCharging", false);
+
+        // Open the hitbox partway into the swing so it lines up with the
+        // visual moment of impact, rather than the instant the bool flips.
+        if (hitboxActiveDelay > 0f)
+            yield return new WaitForSeconds(hitboxActiveDelay);
+
+        if (weaponHitbox != null)
+            weaponHitbox.SetActive(true);
+
+        yield return new WaitForSeconds(hitboxActiveDuration);
+
+        if (weaponHitbox != null)
+            weaponHitbox.SetActive(false);
+
+        float remaining = attackDuration - hitboxActiveDelay - hitboxActiveDuration;
+        if (remaining > 0f)
+            yield return new WaitForSeconds(remaining);
+
+        // Return to idle
+        animator.SetBool("isAttacking", false);
+
+        IsAttacking = false;
+        attackInProgress = false;
+    }
+
+    private void HandleWeaponHit(Vector3 contactPoint, EnemyCombat enemyCombat)
+    {
+        enemyCombat.TakeDamage(attackDamage);
     }
 
     // Input callback -- called by PlayerInput (Send Messages)

@@ -58,6 +58,10 @@ public class Boid : MonoBehaviour
     [SerializeField] private float retreatHealthFraction = 0.2f;
     [SerializeField] private float retreatWeight = 4f;
 
+    [Header("Player Collision Safety")]
+    [Tooltip("Minimum distance this boid is allowed to move to relative to the player. Prevents any steering force (especially Retreat, which can fire at point-blank range) from moving the boid's collider into/through the player's CharacterController, which would otherwise get resolved as a sudden push on the player.")]
+    [SerializeField] private float minSeparationFromPlayer = 1f;
+
     [Header("Obstacle Avoidance")]
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private float avoidanceLookAhead = 2f;
@@ -276,7 +280,25 @@ public class Boid : MonoBehaviour
         velocity = Limit(velocity, moveSpeed);
         velocity.y = 0f;
 
-        transform.position += velocity * Time.deltaTime;
+        Vector3 delta = velocity * Time.deltaTime;
+        Vector3 nextPosition = transform.position + delta;
+
+        if (target != null)
+        {
+            float nextDist = Vector3.Distance(nextPosition, target.position);
+            if (nextDist < minSeparationFromPlayer)
+            {
+                Vector3 awayFromPlayer = (nextPosition - target.position);
+                awayFromPlayer.y = 0f;
+                if (awayFromPlayer.sqrMagnitude > 0.0001f)
+                {
+                    awayFromPlayer.Normalize();
+                    nextPosition = target.position + awayFromPlayer * minSeparationFromPlayer;
+                }
+            }
+        }
+
+        transform.position = nextPosition;
     }
 
     private void VisualRotation()

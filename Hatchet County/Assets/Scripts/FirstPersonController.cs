@@ -44,6 +44,8 @@ public class FirstPersonController : MonoBehaviour
     private Vector3 currentMovement = Vector3.zero;
     private float verticalRotation = 0f;
 
+    
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();

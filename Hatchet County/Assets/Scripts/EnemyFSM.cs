@@ -4,8 +4,14 @@ using UnityEngine;
 /// Hatchet County - EnemyFSM
 /// Finite state machine that drives the enemy's high-level behaviour.
 /// EnemyCombat and Boid handle the specifics of attacking and movement;
-/// EnemyFSM owns the state, decides transitions each frame, and sets the
-/// animator parameter "fsmState" (int) so the animator can drive blends.
+/// EnemyFSM owns the state, decides transitions each frame, and drives
+/// the animator via the existing bool parameters plus a dedicated isBlocking bool.
+///
+/// Animator parameters used:
+///   isDrawing   (bool) -- set by EnemyCombat during telegraph
+///   isCharging  (bool) -- set by EnemyCombat during parry window
+///   isAttacking (bool) -- set by EnemyCombat during swing
+///   isBlocking  (bool) -- set by EnemyFSM when entering/leaving Blocking state
 ///
 /// States:
 ///   Idle      -- outside detection range; Boid roams passively.
@@ -14,15 +20,18 @@ using UnityEngine;
 ///   Attacking -- inside strike range and cooldown elapsed; EnemyCombat runs
 ///                the draw/charge/swing sequence. FSM stays here until the
 ///                sequence finishes before re-evaluating.
-///   Blocking  -- player pressed attack AND the enemy is not already mid-swing;
-///                enemy raises its guard for blockReactionTime seconds, reducing
-///                incoming damage. Transitions back to Chasing when the window
-///                closes or the block duration expires.
+///   Blocking  -- player started an attack AND the enemy is not already mid-swing;
+///                enemy raises its guard for blockDuration seconds, reducing
+///                incoming damage. Transitions back to Chasing when it expires.
 ///
 /// Blocking trigger:
-///   PlayerCombat.AttackTriggered is read each frame. When it fires and the
-///   FSM is in Idle or Chasing (not already committed to an attack), the enemy
-///   has a blockChance probability of entering Blocking immediately.
+///   PlayerCombat.OnAttackStarted is an event raised exactly once, the moment
+///   the player commits to an attack (see PlayerCombat.PerformAttack). EnemyFSM
+///   subscribes to it in OnEnable/OnDisable rather than polling raw input, so it
+///   reacts to the player's actual attack action instead of the raw button state.
+///   When the event fires and the FSM is in Idle or Chasing (not already
+///   committed to an attack), the enemy has a blockChance probability of
+///   entering Blocking immediately.
 /// </summary>
 [RequireComponent(typeof(EnemyCombat))]
 [RequireComponent(typeof(Boid))]
@@ -43,8 +52,8 @@ public class EnemyFSM : MonoBehaviour
     [SerializeField] private float blockDamageMultiplier = 0.25f;
 
     [Header("Animator")]
-    [Tooltip("Animator int parameter driven by the FSM. Map: 0=Idle 1=Chasing 2=Attacking 3=Blocking.")]
-    [SerializeField] private string fsmStateParam = "fsmState";
+    [Tooltip("Animator bool set true while the enemy is in the Blocking state.")]
+    [SerializeField] private string isBlockingParam = "isBlocking";
 
     public EnemyState State { get; private set; } = EnemyState.Idle;
     public float BlockDamageMultiplier => State == EnemyState.Blocking ? blockDamageMultiplier : 1f;
@@ -55,7 +64,6 @@ public class EnemyFSM : MonoBehaviour
     private PlayerCombat playerCombat;
 
     private float blockTimer = 0f;
-    private bool wasPlayerAttacking = false;
 
     private void Start()
     {
@@ -65,26 +73,36 @@ public class EnemyFSM : MonoBehaviour
         playerCombat = FindAnyObjectByType<PlayerCombat>();
 
         if (playerCombat == null)
+        {
             Debug.LogError("[EnemyFSM] No PlayerCombat found in scene.");
+            return;
+        }
+
+        playerCombat.OnAttackStarted += HandlePlayerAttackStarted;
+    }
+
+    private void OnDestroy()
+    {
+        if (playerCombat != null)
+            playerCombat.OnAttackStarted -= HandlePlayerAttackStarted;
     }
 
     private void Update()
     {
         if (playerCombat == null) return;
 
-        CheckBlockTrigger();
         UpdateState();
         ApplyState();
         SyncAnimator();
     }
 
-    private void CheckBlockTrigger()
+    /// <summary>
+    /// Called once whenever the player commits to an attack (event-driven,
+    /// not polled). Only reacts if this enemy isn't already mid-attack or
+    /// already blocking, and only if the player is within detection range.
+    /// </summary>
+    private void HandlePlayerAttackStarted()
     {
-        bool playerAttackingNow = PlayerInputHandler.Instance != null && PlayerInputHandler.Instance.AttackTriggered;
-        bool attackStartedThisFrame = playerAttackingNow && !wasPlayerAttacking;
-        wasPlayerAttacking = playerAttackingNow;
-
-        if (!attackStartedThisFrame) return;
         if (State == EnemyState.Attacking) return;
         if (State == EnemyState.Blocking) return;
 
@@ -166,7 +184,7 @@ public class EnemyFSM : MonoBehaviour
     private void SyncAnimator()
     {
         if (animator == null) return;
-        animator.SetInteger(fsmStateParam, (int)State);
+        animator.SetBool(isBlockingParam, State == EnemyState.Blocking);
     }
 
 #if UNITY_EDITOR
