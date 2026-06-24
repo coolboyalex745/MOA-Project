@@ -33,6 +33,10 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] private float attackActiveDuration = 0.4f;
     [SerializeField] private float parryGracePeriod = 0.15f;
 
+    [Header("Attack Safety Net")]
+    [Tooltip("If EndAttack() (an Animation Event) hasn't fired within this many seconds of TryAttack(), force-end the attack so the enemy doesn't get stuck forever. This is a fallback for a missing/broken Animation Event on the attack clip -- it is NOT a substitute for fixing the actual event. Set to 0 to disable.")]
+    [SerializeField] private float maxAttackDuration = 3f;
+
     [Header("Stats")]
     [SerializeField] private int attackDamage = 20;
     [SerializeField] private int maxHealth = 100;
@@ -77,6 +81,22 @@ public class EnemyCombat : MonoBehaviour
 
         weaponHitbox.SetActive(false);
         weaponHitbox.OnPlayerHit += HandleWeaponHit;
+    }
+
+    private void Update()
+    {
+        // SAFETY NET: if EndAttack() (an Animation Event) hasn't fired within
+        // maxAttackDuration seconds of TryAttack(), something is wrong with the
+        // attack clip's events -- force-close the attack so the enemy doesn't
+        // get stuck in isAttacking=true forever. This should never trigger once
+        // the clip's EndAttack event is actually wired up correctly.
+        if (isAttacking && maxAttackDuration > 0f && Time.time >= lastAttackTime + maxAttackDuration)
+        {
+            Debug.LogWarning("[EnemyCombat] Attack safety-net triggered -- EndAttack() never fired " +
+                              $"within {maxAttackDuration}s of TryAttack(). Check that the attack " +
+                              "Animation Clip has an Animation Event calling EndAttack().");
+            EndAttack();
+        }
     }
 
     private void OnDestroy()
@@ -127,6 +147,24 @@ public class EnemyCombat : MonoBehaviour
         isAttacking = false;
     }
 
+    /// <summary>
+    /// Called by PlayerCombat the instant a parry against THIS enemy succeeds.
+    /// Immediately interrupts the swing instead of waiting for the clip's
+    /// EndAttack event (or the safety-net timeout) to close it out naturally --
+    /// a successful parry should stagger the enemy right away, not eventually.
+    /// </summary>
+    public void InterruptAttack()
+    {
+        if (!isAttacking) return;
+
+        Debug.Log("[EnemyCombat] Attack interrupted by successful parry.");
+
+        // TODO: trigger a stagger/hitstun animation state here once you have one
+        // (e.g. animator.SetTrigger("staggered")) instead of just snapping back
+        // to Idle/Chasing.
+        EndAttack();
+    }
+
     public void TakeDamage(int amount)
     {
         EnemyFSM fsm = GetComponent<EnemyFSM>();
@@ -154,7 +192,9 @@ public class EnemyCombat : MonoBehaviour
         if (swingSFX != null && audioSource != null)
             audioSource.PlayOneShot(swingSFX);
 
-        playerCombat.ReceiveAttack(isParryWindowOpen, attackDamage, contactPoint);
+        // Pass 'this' through so PlayerCombat can call back into InterruptAttack()
+        // on THIS specific enemy if the hit resolves as a successful parry.
+        playerCombat.ReceiveAttack(this, isParryWindowOpen, attackDamage, contactPoint);
     }
 
     public void CloseParryWindow()

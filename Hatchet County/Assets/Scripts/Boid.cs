@@ -84,9 +84,11 @@ public class Boid : MonoBehaviour
     private float roamTimer;
     private List<Boid> neighbours = new List<Boid>();
     private EnemyCombat enemyCombat;
+    private Animator animator;
 
     private void Awake()
     {
+        animator = GetComponent<Animator>();
         enemyCombat = GetComponent<EnemyCombat>();
 
         if (target == null)
@@ -101,6 +103,7 @@ public class Boid : MonoBehaviour
 
     private void Update()
     {
+        animator.SetFloat("Velocity", velocity.magnitude);
         UpdateState();
         UpdateNeighbours();
 

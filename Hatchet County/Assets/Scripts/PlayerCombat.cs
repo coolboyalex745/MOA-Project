@@ -203,9 +203,11 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    // Public API called by EnemyCombat when the hitbox connects
-
-    public void ReceiveAttack(bool isParryWindow, int damage, Vector3 hitPoint)
+    // Public API called by EnemyCombat when the hitbox connects.
+    // 'attacker' is the specific EnemyCombat that landed the hit -- needed so
+    // a successful parry can interrupt THAT enemy's swing immediately instead
+    // of waiting for its animation clip (or the safety-net timeout) to end it.
+    public void ReceiveAttack(EnemyCombat attacker, bool isParryWindow, int damage, Vector3 hitPoint)
     {
         // A parry requires BOTH: the window must be open AND block was pressed during it
         bool validParry = isParryWindow && parryPressed;
@@ -214,6 +216,11 @@ public class PlayerCombat : MonoBehaviour
         {
             TriggerParrySuccess(hitPoint);
             parryPressed = false;
+
+            // Stagger/interrupt the attacking enemy right away rather than
+            // letting its swing keep "happening" until EndAttack eventually fires.
+            if (attacker != null)
+                attacker.InterruptAttack();
         }
         else if (IsBlocking)
         {
