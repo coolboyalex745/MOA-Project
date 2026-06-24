@@ -563,7 +563,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: e9641d31c2540d146b02659e37616129, type: 2}
     - target: {fileID: 847088337935505373, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
       propertyPath: retreatHealthFraction
-      value: 0.2
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1152926318595453988, guid: 0e6528f0f04202849953fcf7dc4092a1, type: 3}
       propertyPath: m_Layer

@@ -55,7 +55,7 @@ public class Boid : MonoBehaviour
 
     [Header("Retreat")]
     [Tooltip("Health fraction at which the enemy retreats (0 = never).")]
-    [SerializeField] private float retreatHealthFraction = 0.2f;
+    [SerializeField] private float retreatHealthFraction = 0f;
     [SerializeField] private float retreatWeight = 4f;
 
     [Header("Player Collision Safety")]
