@@ -73,6 +73,10 @@ public class Boid : MonoBehaviour
     [SerializeField] private float roamInterval = 3f;
     [SerializeField] private float roamRadius = 8f;
 
+    [Header("Gizmos")]
+    [Tooltip("Vertical offset for editor gizmos. With a capsule collider the pivot is usually centered, but most humanoid model rigs have their root pivot at the feet -- this raises the gizmo spheres back up to roughly chest height.")]
+    [SerializeField] private float gizmoHeightOffset = 1f;
+
     public BoidState State { get; private set; } = BoidState.Roaming;
 
     private Vector3 velocity;
@@ -305,7 +309,7 @@ public class Boid : MonoBehaviour
     {
         if (velocity.sqrMagnitude < 0.01f) return;
 
-        Quaternion targetRot = Quaternion.LookRotation(velocity.normalized) * Quaternion.Euler(0f, 180f, 0f);
+        Quaternion targetRot = Quaternion.LookRotation(velocity.normalized);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot,
                                                 rotationSpeed * Time.deltaTime);
     }
@@ -318,17 +322,19 @@ public class Boid : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
+        Vector3 origin = transform.position + Vector3.up * gizmoHeightOffset;
+
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
+        Gizmos.DrawWireSphere(origin, detectionRange);
 
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, preferredRange);
+        Gizmos.DrawWireSphere(origin, preferredRange);
 
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, separationRadius);
+        Gizmos.DrawWireSphere(origin, separationRadius);
 
         Gizmos.color = Color.white;
-        Gizmos.DrawRay(transform.position, velocity);
+        Gizmos.DrawRay(origin, velocity);
     }
 #endif
 }

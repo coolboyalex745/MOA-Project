@@ -1,21 +1,18 @@
 using UnityEngine;
-using System.Collections;
 
 /// <summary>
 /// Hatchet County - EnemyCombat
-/// Damage only happens when the weapon collider physically touches the player.
-/// Notifies PlayerCombat when the parry window opens and closes.
-/// Requires a Boid component for movement and an EnemyFSM component for state.
-/// EnemyFSM calls TryAttack() when it enters the Attacking state; this class
-/// does not start attacks on its own.
+/// Damage only happens when weapon collider physically touches the player.
+/// Attack flow is now fully animation-driven (no timing-based cutoffs).
 ///
 /// Animation stages:
-///   Idle        -- sword hidden, no bools set
-///   isDrawing   -- sword appears
-///   isCharging  -- enemy draws back, parry window opens (parryWindowDuration)
-///   isAttacking -- swing fires, hitbox active
-/// Each bool is set to true BEFORE the previous is set to false so the
-/// animator always has a true condition and never falls back to idle.
+///   Idle        -- no attack active
+///   isAttacking -- controlled by FSM trigger + animation events
+///
+/// Animation events must call:
+///   EnableHitbox  -> activates damage window
+///   DisableHitbox -> ends damage window
+///   EndAttack     -> resets attack state
 /// </summary>
 [RequireComponent(typeof(Boid))]
 public class EnemyCombat : MonoBehaviour
@@ -26,19 +23,14 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] private Animator animator;
 
     [Header("Strike Range")]
-    [Tooltip("Distance to the player that triggers the attack sequence.")]
     [SerializeField] private float strikeRange = 2f;
-    [Tooltip("Minimum seconds between two attacks.")]
     [SerializeField] private float attackCooldown = 2.5f;
 
     [Header("Attack Timing")]
-    [Tooltip("Wind-up time for the draw animation before the charge starts.")]
+    [Tooltip("Legacy timing removed from control flow, kept for tuning if needed.")]
     [SerializeField] private float telegraphDelay = 0.6f;
-    [Tooltip("How long the parry window stays open during the charge.")]
     [SerializeField] private float parryWindowDuration = 1f;
-    [Tooltip("How long the hitbox stays active during the swing.")]
     [SerializeField] private float attackActiveDuration = 0.4f;
-    [Tooltip("How long after the hitbox closes the parry window stays open.")]
     [SerializeField] private float parryGracePeriod = 0.15f;
 
     [Header("Stats")]
@@ -53,34 +45,29 @@ public class EnemyCombat : MonoBehaviour
     [Header("VFX")]
     [SerializeField] private ParticleSystem attackTelegraphVFX;
 
+    [Header("Gizmos")]
+    [Tooltip("Vertical offset for editor gizmos. With a capsule collider the pivot is usually centered, but most humanoid model rigs have their root pivot at the feet -- this raises the gizmo spheres back up to roughly chest height.")]
+    [SerializeField] private float gizmoHeightOffset = 1f;
+
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
     public float StrikeRange => strikeRange;
     public float AttackCooldown => attackCooldown;
     public float LastAttackTime => lastAttackTime;
-    public bool IsInParryWindow => isParryWindowOpen;
     public bool IsAttacking => isAttacking;
 
-    private bool isParryWindowOpen = false;
-    private bool isAttacking = false;
-    private float lastAttackTime = float.NegativeInfinity;
-    private Boid boid;
+    private bool isAttacking;
+    private bool isParryWindowOpen;
+    private float lastAttackTime;
 
     private void Start()
     {
-        boid = GetComponent<Boid>();
         weaponHitbox = GetComponentInChildren<WeaponHitbox>();
         playerCombat = FindAnyObjectByType<PlayerCombat>();
         animator = GetComponent<Animator>();
 
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
-
-        if (playerCombat == null)
-        {
-            Debug.LogError("[EnemyCombat] No PlayerCombat found in scene.");
-            return;
-        }
 
         if (weaponHitbox == null)
         {
@@ -102,61 +89,55 @@ public class EnemyCombat : MonoBehaviour
     {
         if (isAttacking) return;
 
-        lastAttackTime = Time.time;
-        StartCoroutine(PerformAttack());
-    }
-
-    private IEnumerator PerformAttack()
-    {
         isAttacking = true;
-
-        if (attackTelegraphVFX != null)
-            attackTelegraphVFX.Play();
-
-        animator.SetBool("isDrawing", true);
-        Debug.Log("[EnemyCombat] Drawing...");
-
-        yield return new WaitForSeconds(telegraphDelay);
-
-        isParryWindowOpen = true;
-        playerCombat.SetParryWindow(true);
-
-        animator.SetBool("isCharging", true);
-        animator.SetBool("isDrawing", false);
-        Debug.Log("[EnemyCombat] Charging -- parry window OPEN");
-
-        yield return new WaitForSeconds(parryWindowDuration);
+        lastAttackTime = Time.time;
 
         animator.SetBool("isAttacking", true);
-        animator.SetBool("isCharging", false);
+    }
 
+    /// <summary>
+    /// Animation Event: enables hit detection
+    /// </summary>
+    public void EnableHitbox()
+    {
         weaponHitbox.SetActive(true);
-        Debug.Log("[EnemyCombat] Attacking -- hitbox ON");
+    }
 
-        yield return new WaitForSeconds(attackActiveDuration);
+    /// <summary>
+    /// Animation Event: disables hit detection
+    /// </summary>
+    public void DisableHitbox()
+    {
+        weaponHitbox.SetActive(false);
+    }
+
+    /// <summary>
+    /// Animation Event: fully ends attack cycle
+    /// </summary>
+    public void EndAttack()
+    {
+        if (!isAttacking) return;
 
         weaponHitbox.SetActive(false);
-        Debug.Log("[EnemyCombat] Hitbox OFF");
 
-        yield return new WaitForSeconds(parryGracePeriod);
-
-        isParryWindowOpen = false;
-        playerCombat.SetParryWindow(false);
+        if (playerCombat != null)
+            playerCombat.SetParryWindow(false);
 
         animator.SetBool("isAttacking", false);
         isAttacking = false;
-        Debug.Log("[EnemyCombat] Parry window CLOSED -- returning to idle");
     }
 
     public void TakeDamage(int amount)
     {
         EnemyFSM fsm = GetComponent<EnemyFSM>();
+
         int finalAmount = fsm != null
             ? Mathf.CeilToInt(amount * fsm.BlockDamageMultiplier)
             : amount;
 
         currentHealth = Mathf.Max(0, currentHealth - finalAmount);
-        Debug.Log($"[EnemyCombat] Took {finalAmount} damage -- {currentHealth}/{maxHealth} HP");
+
+        Debug.Log($"[EnemyCombat] Took {finalAmount} damage -- {currentHealth}/{maxHealth}");
 
         if (currentHealth <= 0)
             Die();
@@ -176,14 +157,28 @@ public class EnemyCombat : MonoBehaviour
         playerCombat.ReceiveAttack(isParryWindowOpen, attackDamage, contactPoint);
     }
 
+    public void CloseParryWindow()
+    {
+        isParryWindowOpen = false;
+        if (playerCombat != null)
+            playerCombat.SetParryWindow(false);
+    }
+    public void OpenParryWindow()
+    {
+        isParryWindowOpen = true;
+        if (playerCombat != null)
+            playerCombat.SetParryWindow(true);
+    }
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
+        Vector3 origin = transform.position + Vector3.up * gizmoHeightOffset;
+
         Gizmos.color = Color.magenta;
-        Gizmos.DrawWireSphere(transform.position, strikeRange);
+        Gizmos.DrawWireSphere(origin, strikeRange);
 
         Gizmos.color = isParryWindowOpen ? Color.green : Color.red;
-        Gizmos.DrawWireSphere(transform.position, 0.2f);
+        Gizmos.DrawWireSphere(origin, 0.2f);
     }
 #endif
 }
